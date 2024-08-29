@@ -1,0 +1,534 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider  = "prisma-client-py"
+  interface = "asyncio"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model HighSpenders {
+  id                     Int    @id @default(autoincrement())
+  customer_id            Int    @unique
+  customer_name          String
+  total_spent            Float
+}
+
+model FrequentShoppers {
+  id                     Int    @id @default(autoincrement())
+  customer_id            Int    @unique
+  customer_name          String
+  orders_count           Int
+}
+
+model BestSellingProducts {
+  id                      Int    @id @default(autoincrement())
+  name                    String @unique
+  quantity_sold           Int
+}
+
+model Customer {
+  id                      Int      @id @default(autoincrement())
+  uuid                    String?   @default(uuid())
+  customer_id             String   @unique 
+  first_name              String?
+  last_name               String?
+  email                   String?
+  language                String?
+  orders_count            Int
+  total_spent             Float
+  phone                   String?
+  all_data                Json
+  address                 Json
+  addressOne              String?
+  addressTwo              String?
+  city                    String?
+  country                 String?
+  company                 String?
+  store_id                Int?
+  organization_id         Int?
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+  email_marketing_consent Boolean?
+  sms_marketing_consent   Boolean?
+  tax_exempt              Boolean?
+  tax_exemption           Boolean?
+  is_deleted              Boolean  @default(false) 
+  deleted_at              DateTime? 
+  json_data               Json?
+}
+
+model Organization {
+  id                       Int                        @id @default(autoincrement())
+  uuid                     String                     @default(uuid())
+  nanoid                   String
+  name                     String
+  email                    String
+  phone_number             String?
+  addressOne               String?
+  addressTwo               String?
+  city                     String
+  country                  String
+  plan_payment_provider_id Int?
+  sub_plan_id              Int?
+  status                   Boolean                    @default(false)
+  payment_status           OrganizationPaymentStatus  @default(INACTIVE)
+  stripe_customer_id       String?
+  image                    String?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime?
+  updatedBy                Int?
+  isDeleted                Boolean                    @default(false)
+  deletedAt                DateTime?
+  subscriptionPlan         SubscriptionPlan?          @relation(fields: [sub_plan_id], references: [id])
+  user                     User?                      @relation(fields: [updatedBy], references: [id])
+  planPaymentProvider      PlanPaymentProvider?       @relation(fields: [plan_payment_provider_id], references: [id])
+  Store                    Store[]
+  UserOrganization         UserOrganization[]
+  OrganizationSubscription OrganizationSubscription[]
+  Payments                 Payments[]
+  PaymentProvider          PaymentProvider[]
+  Notifications            Notifications[]
+  OrganizationPreferences  OrganizationPreferences[]
+}
+
+model Store {
+  id                   Int                    @id @default(autoincrement())
+  uuid                 String                 @default(uuid())
+  store_name           String
+  location             String
+  status               String?
+  organization_id      Int
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime?
+  updatedBy            Int?
+  isDeleted            Boolean?               @default(false)
+  deletedAt            DateTime?
+  user                 User?                  @relation(fields: [updatedBy], references: [id])
+  organization         Organization           @relation(fields: [organization_id], references: [id])
+  StorePaymentProvider StorePaymentProvider[]
+  Credential          Credential[]
+  Orders               Orders[]
+  Reconcilation        Reconcilation[]
+  LastSync             LastSync[]
+  Audit                Audit[]
+}
+
+model Credential {
+  id                   Int       @id @default(autoincrement())
+  store_id             Int
+  store_api_key        String
+  store_api_secret_key String
+  store_shop_name      String
+  store_access_token   String
+  store_code           String?
+  api_version          String?
+  api_url              String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime?
+  isDeleted            Boolean?  @default(false)
+  deletedAt            DateTime?
+  store                Store     @relation(fields: [store_id], references: [id])
+}
+
+model LastSync {
+  id         Int      @id @default(autoincrement())
+  date_time  DateTime @default(now())
+  sync_range String?
+  status     String?
+  store_id   Int
+  user_id    Int?
+  store      Store    @relation(fields: [store_id], references: [id])
+  user       User?    @relation(fields: [user_id], references: [id])
+}
+
+model PaymentProvider {
+  id                   Int                    @id @default(autoincrement())
+  uuid                 String                 @default(uuid())
+  name                 String
+  image                String?
+  row_identifier       String
+  status               String?
+  organization_id      Int?
+  isSuggested          Boolean                @default(false)
+  isAdmin              Boolean                @default(false)
+  countries            String[]
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime?
+  updatedBy            Int?
+  isDeleted            Boolean                @default(false)
+  deletedAt            DateTime?
+  organization         Organization?          @relation(fields: [organization_id], references: [id])
+  user                 User?                  @relation(fields: [updatedBy], references: [id])
+  StorePaymentProvider StorePaymentProvider[]
+  Reconcilation        Reconcilation[]
+  Audit                Audit[]
+}
+
+model StorePaymentProvider {
+  id                  Int             @id @default(autoincrement())
+  store_id            Int
+  payment_provider_id Int
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime?
+  updatedBy           Int?
+  isDeleted           Boolean         @default(false)
+  deletedAt           DateTime?
+  user                User?           @relation(fields: [updatedBy], references: [id])
+  store               Store           @relation(fields: [store_id], references: [id])
+  paymentProvider     PaymentProvider @relation(fields: [payment_provider_id], references: [id])
+}
+
+model Otp {
+  id             Int      @id @default(autoincrement())
+  email_or_phone String
+  otp            String
+  created_at     DateTime @default(now())
+  expire_at      DateTime
+  isUserVerified Boolean
+}
+
+model User {
+  id                   Int                    @id @default(autoincrement())
+  uuid                 String                 @default(uuid())
+  username             String
+  email                String
+  phone_number         String?
+  // role          String
+  password             String?
+  status               String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime?
+  updatedBy            Int?
+  isDeleted            Boolean                @default(false)
+  deletedAt            DateTime?
+  user_type            UserType               @default(USER)
+  auth_provider        AuthProvider           @default(CREDENTIALS)
+  auth_provider_id     String?
+  Reconcilation        Reconcilation[]
+  UserRoles            UserRoles[]
+  Audit                Audit[]
+  Organization         Organization[]
+  Store                Store[]
+  LastSync             LastSync[]
+  PaymentProvider      PaymentProvider[]
+  StorePaymentProvider StorePaymentProvider[]
+  UserPasswordHistory  UserPasswordHistory[]
+  UserOrganization     UserOrganization[]
+  SubscriptionPlan     SubscriptionPlan[]
+  Feature              Feature[]
+  Payments             Payments[]
+  Notifications        Notifications[]
+}
+
+model UserPasswordHistory {
+  id         Int      @id @default(autoincrement())
+  uuid       String   @default(uuid())
+  user_id    Int
+  password   String
+  status     Boolean?
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id])
+}
+
+model UserOrganization {
+  id              Int          @id @default(autoincrement())
+  organization_id Int
+  user_id         Int
+  created_at      DateTime     @default(now())
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  user            User         @relation(fields: [user_id], references: [id])
+}
+
+model Roles {
+  id          Int         @id @default(autoincrement())
+  role_name   String
+  description String?
+  created_at  DateTime    @default(now())
+  UserRoles   UserRoles[]
+}
+
+model UserRoles {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  role_id    Int
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id])
+  role       Roles    @relation(fields: [role_id], references: [id])
+}
+
+model Reconcilation {
+  id                    Int             @id @default(autoincrement())
+  uuid                  String          @default(uuid())
+  date_time             DateTime
+  reverted_at           DateTime?
+  reconcile_data        Json
+  reconciled_date_range String?
+  status                String?
+  payment_provider_id   Int
+  reconciled_by_id      Int
+  store_id              Int
+  paymentProvider       PaymentProvider @relation(fields: [payment_provider_id], references: [id])
+  user                  User            @relation(fields: [reconciled_by_id], references: [id])
+  store                 Store           @relation(fields: [store_id], references: [id])
+  Audit                 Audit[]
+}
+
+model Orders {
+  id                     Int      @id @default(autoincrement())
+  uuid                   String   @default(uuid())
+  order_id               String?
+  order_name             String
+  created_at             DateTime
+  customer               String
+  payment_status         String
+  fulfillment_status     String
+  total                  String
+  reconcile_status       String
+  mapping_id             String?
+  store_id               Int
+  items                  Json
+  totals                 Json
+  tax_lines              Json
+  discounts              Json
+  payments               Json
+  payments_method_status Json?
+  gift_cards             Json?
+  all_data               Json
+  is_deleted             Boolean? @default(false)
+  updated_at             DateTime @default(now())
+  store                  Store    @relation(fields: [store_id], references: [id])
+  json_data              Json?
+  @@index([mapping_id])
+}
+
+model Audit {
+  id                  Int              @id @default(autoincrement())
+  date_time           DateTime
+  store_id            Int
+  payment_provider_id Int
+  action_name         String
+  action_by_id        Int
+  reconciliation_id   Int
+  sync_range          String?
+  description         String?
+  store               Store            @relation(fields: [store_id], references: [id])
+  paymentProvider     PaymentProvider? @relation(fields: [payment_provider_id], references: [id])
+  user                User             @relation(fields: [action_by_id], references: [id])
+  reconciliation      Reconcilation?   @relation(fields: [reconciliation_id], references: [id])
+}
+
+//
+model SubscriptionPlan {
+  id                       Int                        @id @default(autoincrement())
+  uuid                     String                     @default(uuid())
+  name                     String
+  description              String?
+  stripe_product_id        String?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime?
+  updatedBy                Int?
+  isDeleted                Boolean                    @default(false)
+  deletedAt                DateTime?
+  user                     User?                      @relation(fields: [updatedBy], references: [id])
+  SubscriptionPlanFeature  SubscriptionPlanFeature[]
+  Organization             Organization[]
+  OrganizationSubscription OrganizationSubscription[]
+  Payments                 Payments[]
+}
+
+model Feature {
+  id                      Int                       @id @default(autoincrement())
+  uuid                    String                    @default(uuid())
+  name                    String
+  description             String?
+  identifier              MaxLimitsIdentifier
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime?
+  updatedBy               Int?
+  isDeleted               Boolean                   @default(false)
+  deletedAt               DateTime?
+  user                    User?                     @relation(fields: [updatedBy], references: [id])
+  SubscriptionPlanFeature SubscriptionPlanFeature[]
+}
+
+model SubscriptionPlanFeature {
+  id                   Int              @id @default(autoincrement())
+  subscription_plan_id Int
+  feature_id           Int
+  maxLimit             Int?
+  createdAt            DateTime         @default(now())
+  subscriptionPlan     SubscriptionPlan @relation(fields: [subscription_plan_id], references: [id])
+  feature              Feature          @relation(fields: [feature_id], references: [id])
+}
+
+//
+
+model OrganizationSubscription {
+  id                          Int                  @id @default(autoincrement())
+  subscription_plan_id        Int
+  organization_id             Int
+  subscription_duration       SubscriptionDuration
+  status                      SubscriptionStatus
+  stripe_subscription_plan_id String?
+  activated_on                DateTime
+  valid_until                 DateTime
+  subscriptionPlan            SubscriptionPlan     @relation(fields: [subscription_plan_id], references: [id])
+  organization                Organization         @relation(fields: [organization_id], references: [id])
+}
+
+model Payments {
+  id                   Int                  @id @default(autoincrement())
+  uuid                 String               @default(uuid())
+  reference_no         String
+  subscription_plan_id Int?
+  type                 PaymentType
+  subtotal             Float
+  tax                  Float
+  total                Float
+  currency             String
+  status               PaymentStatus
+  provider_id          Int?
+  response             Json
+  organization_id      Int
+  user_id              Int
+  createdAt            DateTime             @default(now())
+  planPaymentProvider  PlanPaymentProvider? @relation(fields: [provider_id], references: [id])
+  subscriptionPlan     SubscriptionPlan?    @relation(fields: [subscription_plan_id], references: [id])
+  organization         Organization         @relation(fields: [organization_id], references: [id])
+  user                 User                 @relation(fields: [user_id], references: [id])
+}
+
+model PlanPaymentProvider {
+  id           Int            @id @default(autoincrement())
+  uuid         String         @default(uuid())
+  name         String
+  description  String?
+  credentials  Json
+  image        String
+  createdAt    DateTime       @default(now())
+  Payments     Payments[]
+  Organization Organization[]
+}
+
+model Notifications {
+  id              Int                  @id @default(autoincrement())
+  uuid            String               @default(uuid())
+  type            NotificationType
+  channel         NotificationChannel?
+  scheduled_on    DateTime
+  status          NotificationStatus
+  mail_options    Json
+  content         Json
+  response        Json?
+  user_id         Int?
+  organization_id Int?
+  createdAt       DateTime             @default(now())
+  user            User?                @relation(fields: [user_id], references: [id])
+  organization    Organization?        @relation(fields: [organization_id], references: [id])
+}
+
+model SystemConfiguration {
+  id    Int    @id @default(autoincrement())
+  key   String
+  value String
+}
+
+model Preferences {
+  id                      Int                       @id @default(autoincrement())
+  name                    String
+  key                     String
+  description             String?
+  OrganizationPreferences OrganizationPreferences[]
+}
+
+model OrganizationPreferences {
+  id              Int          @id @default(autoincrement())
+  organization_id Int
+  preference_id   Int
+  value           String?
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  preference      Preferences  @relation(fields: [preference_id], references: [id])
+}
+
+// enums
+enum OrganizationPaymentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum UserType {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum MaxLimitsIdentifier {
+  USERS
+  STORES
+  DATA_LIMIT
+  ROLES
+  PAYMENT_PROVIDERS
+}
+
+enum SubscriptionDuration {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  GRACE_PERIOD
+}
+
+enum PaymentStatus {
+  FAILED
+  SUCCESS
+  PENDING
+  CANCELLED
+}
+
+enum PaymentType {
+  SUB_PLAN_STARTER
+  SUB_PLAN_BASIC
+  SUB_PLAN_PREMIUM
+}
+
+enum NotificationType {
+  OTP
+  REGISTRATION
+  PASSWORD_RESET
+  PROFILE_UPDATE
+  ORGANIZATION_UPDATE
+  RECONCILIATION
+  PLAN_LIMIT
+  REVERT
+  PLAN_RENEWAL
+  OFFERS
+  ANNOUNCEMENTS
+}
+
+enum NotificationChannel {
+  EMAIL_SENDGRID
+  SMS_TWILIO
+  WHATSAPP
+}
+
+enum NotificationStatus {
+  SENT
+  PENDING
+  READ
+  FAILED
+}
+
+enum AuthProvider {
+  CREDENTIALS
+  GOOGLE
+  APPLE
+  TWO_FACTOR
+}
